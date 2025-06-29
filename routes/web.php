@@ -4,17 +4,18 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Http\Controllers\DownloadController;
 // YouTube download
 use Symfony\Component\Process\Process;
 
-Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
-});
+// Route::get('/', function () {
+//     return Inertia::render('Welcome', [
+//         'canLogin' => Route::has('login'),
+//         'canRegister' => Route::has('register'),
+//         'laravelVersion' => Application::VERSION,
+//         'phpVersion' => PHP_VERSION,
+//     ]);
+// });
 
 Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');
@@ -47,5 +48,8 @@ Route::get('/test-yt-dlp', function () {
 
     return response("🔁 ダウンロード処理をバックグラウンドで開始しました。プロセスID: {$pid}。完了後に /public/videos を確認してください。");
 });
+
+Route::get('/', [DownloadController::class, 'index']);
+// Route::get('/test', [DownloadController::class, 'index'])->name('test.index');
 
 require __DIR__ . '/auth.php';
