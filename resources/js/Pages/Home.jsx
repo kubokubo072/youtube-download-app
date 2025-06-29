@@ -57,7 +57,7 @@ export default function Home() {
                     fontWeight="bold"
                     letterSpacing="wide"
                 >
-                    YouTubeダウンローダー
+                    YouTubeダウンローダー ui
                 </Heading>
 
                 {isMobile ? (
