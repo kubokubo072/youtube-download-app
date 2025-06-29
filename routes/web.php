@@ -36,18 +36,38 @@ Route::get('/test-yt-dlp', function () {
         mkdir($outputDir, 0777, true);
     }
 
-    // yt-dlpコマンドを組み立て（バックグラウンド実行）
     $cmd = "/opt/yt-dlp-venv/bin/yt-dlp --ffmpeg-location /usr/bin/ffmpeg --recode-video mp4 -o "
         . escapeshellarg($outputDir . '/%(title).100s.%(ext)s') . " "
-        . escapeshellarg($youtubeUrl) . " > /dev/null 2>&1 & echo $!";
+        . escapeshellarg($youtubeUrl);
 
-    exec($cmd, $output, $return_var);
+    exec($cmd . ' 2>&1', $output, $return_var);
 
-    // 起動したプロセスIDも返せる（必要に応じて）
-    $pid = $output[0] ?? 'unknown';
-
-    return response("🔁 ダウンロード処理をバックグラウンドで開始しました。プロセスID: {$pid}。完了後に /public/videos を確認してください。");
+    return response()->json([
+        'command' => $cmd,
+        'output' => $output,
+        'return_var' => $return_var,
+    ]);
 });
+// Route::get('/test-yt-dlp', function () {
+//     $youtubeUrl = 'https://youtu.be/XBCML1MmQg8?si=eLkDlw8KNoq8wcNc';
+//     $outputDir = public_path('videos');
+
+//     if (!file_exists($outputDir)) {
+//         mkdir($outputDir, 0777, true);
+//     }
+
+//     // yt-dlpコマンドを組み立て（バックグラウンド実行）
+//     $cmd = "/opt/yt-dlp-venv/bin/yt-dlp --ffmpeg-location /usr/bin/ffmpeg --recode-video mp4 -o "
+//         . escapeshellarg($outputDir . '/%(title).100s.%(ext)s') . " "
+//         . escapeshellarg($youtubeUrl) . " > /dev/null 2>&1 & echo $!";
+
+//     exec($cmd, $output, $return_var);
+
+//     // 起動したプロセスIDも返せる（必要に応じて）
+//     $pid = $output[0] ?? 'unknown';
+
+//     return response("🔁 ダウンロード処理をバックグラウンドで開始しました。プロセスID: {$pid}。完了後に /public/videos を確認してください。");
+// });
 
 Route::get('/', [DownloadController::class, 'index']);
 // Route::get('/test', [DownloadController::class, 'index'])->name('test.index');
