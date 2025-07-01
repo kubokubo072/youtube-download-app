@@ -12,44 +12,69 @@ import {
     Container,
     Select,
     Image,
-    InputGroup,
-    InputRightElement,
 } from '@chakra-ui/react';
 import { StarIcon, Spinner } from '@chakra-ui/icons'
-
 import { HamburgerIcon, CloseIcon } from '@chakra-ui/icons';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { toast, Toaster } from 'react-hot-toast';
 
 export default function Home() {
-    //
-    const { isOpen, onOpen, onClose } = useDisclosure();
+
     const [isMobile] = useMediaQuery('(max-width: 768px)');
     const inputRef = useRef<HTMLInputElement>(null);
-    const [inputValue, setInputValue] = useState<string>('');
-    // const [inputBg, setInputBg] = useState("#FFFFFF");
-    const [videoInfo, setVideoInfo] = useState(false);
+    // const [inputValue, setInputValue] = useState<string>('');
+
+    const [videoInfo, setVideoInfo] = useState({
+        'status': false,
+        'title': '',
+        'thumbnail': '',
+        'errorOutput': ''
+    });
+
     const [loading, setLoading] = useState(false);
-
-
+    const [response, setResponse] = useState(false);
 
     // test
     const [selectedFormat, setSelectedFormat] = useState("MP4(360P, 30FPS)");
     const formats = [
-        "MP4(360P, 30FPS)",
         "MP4(1080P, 60FPS)",
-        "WEBM(1080P, 60FPS)",
-        "MP4(720P, 60FPS)",
+        "audio(音声のみ)",
     ];
+
+    const { isOpen, onOpen, onClose } = useDisclosure()
+    const errorRef = useRef<HTMLDivElement>(null);
+
+    const [showThumbnail, setShowThumbnail] = useState(false);
+
+    useEffect(() => {
+        if (response && videoInfo.status === false) {
+            toast.error("URLに問題があります。正しい形式を確認してください。");
+        }
+    }, [response, videoInfo.status]);
 
     // 入力欄 変更時
     const handleChange = async () => {
 
+        // videoInfoを初期化
+        // タイトル/ サムネイルbox を初期化
+        // 上記の表示非表示を切り替えるステートを用意する必要あり
+        setShowThumbnail(false);
+
         setLoading(true);
+        // ✅ ここで前回の情報をリセット
+        setVideoInfo({
+            status: false,
+            title: '',
+            thumbnail: '',
+            errorOutput: ''
+        });
+        setResponse(false);
+
 
         if (inputRef.current) {
             const value = inputRef.current.value;
-            setInputValue(value);
             if (!value) {
+                setLoading(false);
                 return;
             }
 
@@ -65,7 +90,29 @@ export default function Home() {
 
                 const data = await response.json();
                 console.log("サーバーからの応答:", data);
-                setVideoInfo(true);
+
+                setResponse(true);
+
+                if (data.status) {
+                    setShowThumbnail(true);
+
+                    setVideoInfo(prev => ({
+
+                        'status': data.status,
+                        'title': data.title,
+                        'thumbnail': data.thumbnail,
+                        'errorOutput': ''
+
+                    }))
+                } else {
+                    setShowThumbnail(false);
+
+                    setVideoInfo(prev => ({
+                        ...prev,
+                        status: data.status
+                    }))
+                    // showError() // ← ここを追加！
+                }
 
             } catch (error) {
                 console.error("エラー:", error);
@@ -157,6 +204,9 @@ export default function Home() {
 
     return (
         <Box>
+
+            <Toaster />
+
             {isMobile ? <MobileHeader /> : <DesktopHeader />}
 
             {/* メインコンテンツ */}
@@ -208,85 +258,97 @@ export default function Home() {
                     </HStack>
                 </Flex>
 
+                {/* url入力時の検索中にスピナーを表示 */}
                 {
                     loading && (
-                        <VStack>
+                        <VStack marginTop={'14px'}>
                             <Spinner boxSize="40px" thickness="4px" color="teal.500" />
                             <Text color="colorPalette.600">Loading...</Text>
                         </VStack>
                     )
                 }
+
+
+                {/* url入力後のリクエストの結果を表示します */}
                 {
-                    videoInfo && (
-                        <Flex justify="center" align="center" minH="60vh">
-                            <VStack spacing={4} align="stretch" maxW="300px" w="100%">
-                                {/* 🔽 修正済みサムネイル部分 */}
-                                <Box
-                                    width="320px"
-                                    height="180px"
-                                    borderRadius="lg"
-                                    overflow="hidden"
-                                    mx="auto"
-                                >
-                                    <Image
-                                        src="https://i.ytimg.com/vi/tLLiwixfGDY/hqdefault.jpg"
-                                        alt="サムネイル"
-                                        objectFit="cover"
-                                        width="100%"
-                                        height="100%"
-                                    />
-                                </Box>
-
-                                <Text fontWeight="bold" fontSize="lg" textAlign="center">
-                                    【感動】真夏のサックス路上ライブ、大切な人に捧げる名曲「木蓮の涙/スターダストレビュー」
-                                </Text>
-
-                                <Box mx="auto">
-                                    <Heading size="sm" mb={2} textAlign="center">
-                                        ビデオフォーマットと解像度
-                                    </Heading>
-                                    <Select
-                                        value={selectedFormat}
-                                        onChange={(e) => setSelectedFormat(e.target.value)}
-                                        bg="white"
-                                        maxW="300px"
+                    showThumbnail && response && (
+                        videoInfo.status === true ? (
+                            <Flex justify="center" align="center" minH="60vh">
+                                <VStack spacing={4} align="stretch" maxW="300px" w="100%">
+                                    {/* 🔽 修正済みサムネイル部分 */}
+                                    <Box
+                                        width="320px"
+                                        height="180px"
+                                        borderRadius="lg"
+                                        overflow="hidden"
+                                        mx="auto"
                                     >
-                                        {formats.map((format) => (
-                                            <option key={format} value={format}>
-                                                {format}
-                                            </option>
-                                        ))}
-                                    </Select>
-                                </Box>
+                                        <Image
+                                            src={videoInfo.thumbnail}
+                                            alt="サムネイル"
+                                            objectFit="cover"
+                                            width="100%"
+                                            height="100%"
+                                        />
+                                    </Box>
 
-                                <Text fontSize="sm" color="gray.600" textAlign="center">
-                                    このYouTube動画をダウンロードすることで、あなたの手元に残せます。
-                                </Text>
-                            </VStack>
-                        </Flex>
+                                    <Text fontWeight="bold" fontSize="lg" textAlign="center">{videoInfo.title}</Text>
+
+                                    <Box mx="auto">
+                                        <Heading size="sm" mb={2} textAlign="center">
+                                            ビデオフォーマットと解像度
+                                        </Heading>
+                                        <Select
+                                            value={selectedFormat}
+                                            onChange={(e) => setSelectedFormat(e.target.value)}
+                                            bg="white"
+                                            maxW="300px"
+                                        >
+                                            {formats.map((format) => (
+                                                <option key={format} value={format}>
+                                                    {format}
+                                                </option>
+                                            ))}
+                                        </Select>
+                                    </Box>
+
+                                    <Text fontSize="sm" color="gray.600" textAlign="center">
+                                        このYouTube動画をダウンロードすることで、あなたの手元に残せます。
+                                    </Text>
+                                </VStack>
+                            </Flex>
+                        ) : (
+                            <Text color="red.500" textAlign="center" mt={4}>
+                                URLに問題があります。正しい形式を確認してください。
+                            </Text>
+                        )
                     )
                 }
-            </Container>
+
+
+            </Container >
 
             {/* PC限定セクション */}
-            {!isMobile && (
-                <Box px={8} py={10} bg="white" borderTop="1px solid #eee">
-                    <Heading size="lg" color="teal.700" mb={4}>
-                        このアプリについて
-                    </Heading>
-                    <Text fontSize="md" color="gray.600" mb={2}>
-                        このアプリは、YouTubeの動画を簡単にダウンロードできる無料ツールです。
-                    </Text>
-                    <Text fontSize="md" color="gray.600">
-                        ご利用には法令遵守をお願いします。
-                    </Text>
-                </Box>
-            )}
+            {
+                !isMobile && (
+                    <Box px={8} py={10} bg="white" borderTop="1px solid #eee">
+                        <Heading size="lg" color="teal.700" mb={4}>
+                            このアプリについて
+                        </Heading>
+                        <Text fontSize="md" color="gray.600" mb={2}>
+                            このアプリは、YouTubeの動画を簡単にダウンロードできる無料ツールです。
+                        </Text>
+                        <Text fontSize="md" color="gray.600">
+                            ご利用には法令遵守をお願いします。
+                        </Text>
+                    </Box>
+                )
+            }
 
             {/* フッター */}
             <Box as="footer" textAlign="center" py={4} fontSize="sm" color="gray.500">
                 © 2025 YouTube Downloader. All rights reserved.
             </Box>
-        </Box>
+        </Box >
     );
 }
