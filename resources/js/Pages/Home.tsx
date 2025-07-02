@@ -15,13 +15,16 @@ import { toast, Toaster } from 'react-hot-toast';
 
 export default function Home() {
     const [isMobile] = useMediaQuery('(max-width: 768px)');
-    const inputRef = useRef<HTMLInputElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null); // ユーザーの入力値を取得
     const [loading, setLoading] = useState(false);
-    const [response, setResponse] = useState(false);
     const { isOpen, onOpen, onClose } = useDisclosure()
-    const [showThumbnail, setShowThumbnail] = useState(false);
-    const [selectedFormat, setSelectedFormat] = useState(1);
+    const [selectedFormat, setSelectedFormat] = useState(1); // mp4 or audioを選択
+    const [showErrorMessage, setShowErrorMessage] = useState(false);
 
+    const formats = [
+        { id: 1, label: "MP4(1080P, 60FPS)" },
+        { id: 2, label: "音声のみ (audio)" },
+    ];
     const [videoInfo, setVideoInfo] = useState({
         'status': false,
         'url': '',
@@ -29,22 +32,24 @@ export default function Home() {
         'thumbnail': '',
         'errorOutput': ''
     });
-    const formats = [
-        { id: 1, label: "MP4(1080P, 60FPS)" },
-        { id: 2, label: "音声のみ (audio)" },
-    ];
 
     useEffect(() => {
-        if (response && videoInfo.status === false) {
+        if (showErrorMessage) {
             toast.error("URLに問題があるか。動画に制限がある可能性があります");
+
+            // 一定時間後にエラーステートを false に戻す（例：3秒後）
+            const timer = setTimeout(() => {
+                setShowErrorMessage(false);
+            }, 3000);
+
+            // クリーンアップ関数でタイマーをクリア（安全のため）
+            return () => clearTimeout(timer);
         }
-    }, [response, videoInfo.status]);
+    }, [showErrorMessage]);
 
     // 入力欄 変更時
     const handleChange = async () => {
-
         // 初期化
-        setShowThumbnail(false);
         setLoading(true);
         setVideoInfo({
             status: false,
@@ -53,7 +58,6 @@ export default function Home() {
             thumbnail: '',
             errorOutput: ''
         });
-        setResponse(false);
 
         if (inputRef.current) {
             const videoUrl = inputRef.current.value;
@@ -71,12 +75,9 @@ export default function Home() {
                     },
                     body: JSON.stringify({ videoUrl: videoUrl }),
                 });
-
                 const data = await response.json();
-                setResponse(true);
 
                 if (data.status) {
-                    setShowThumbnail(true);
                     setVideoInfo({
                         'status': data.status,
                         'url': videoUrl,
@@ -85,7 +86,7 @@ export default function Home() {
                         'errorOutput': ''
                     })
                 } else {
-                    setShowThumbnail(false);
+                    setShowErrorMessage(true);
                     setVideoInfo({
                         status: data.status,
                         url: '',
@@ -108,12 +109,8 @@ export default function Home() {
         // setInputBg('#FFFFFF');
     };
 
-    // 検索ボタンクリック時
-    const handleSearch = async () => {
-        console.log(selectedFormat);
-        console.log(videoInfo.url);
-        console.log(videoInfo);
-
+    // ダウンロード
+    const execDownload = async () => {
 
         // 初期化
         // setShowThumbnail(false);
@@ -128,60 +125,45 @@ export default function Home() {
         // setResponse(false);
 
         // if (inputRef.current) {
-            // const videoUrl = inputRef.current.value;
-            // if (!videoUrl) {
-            //     setLoading(false);
-            //     return;
-            // }
-
-                    console.log(selectedFormat);
-        console.log(videoInfo.url);
-        console.log(videoInfo);
-
-
-            try {
-                const response = await fetch('/api/execDownload', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
-                    },
-                    body: JSON.stringify({
-                        videoUrl: videoInfo.url,
-                        selectedFormat: selectedFormat, // 「1=mp4」「2=audio」
-                    }),
-                });
-
-                const data = await response.json();
-                setResponse(true);
-                alert('成功');
-
-                // if (data.status) {
-                //     setShowThumbnail(true);
-                //     setVideoInfo({
-                //         'status': data.status,
-                //         'url': videoUrl,
-                //         'title': data.title,
-                //         'thumbnail': data.thumbnail,
-                //         'errorOutput': ''
-                //     })
-                // } else {
-                //     setShowThumbnail(false);
-                //     setVideoInfo({
-                //         status: data.status,
-                //         url: '',
-                //         title: '',
-                //         thumbnail: '',
-                //         errorOutput: ''
-                //     });
-                // }
-
-            } catch (error) {
-                console.error("エラー:", error);
-                alert("予期しないエラーが発生しました。システム管理者に連絡してください。");
-            }
-            // setLoading(false);
+        // const videoUrl = inputRef.current.value;
+        // if (!videoUrl) {
+        //     setLoading(false);
+        //     return;
         // }
+
+        try {
+            const response = await fetch('/api/execDownload', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
+                },
+                body: JSON.stringify({
+                    videoUrl: videoInfo.url,
+                    selectedFormat: selectedFormat, // 「1=mp4」「2=audio」
+                }),
+            });
+
+            const data = await response.json();
+            alert('成功');
+
+
+
+            // 初期化
+            // setShowThumbnail(false);
+            setLoading(false);
+            setVideoInfo({
+                status: false,
+                url: '',
+                title: '',
+                thumbnail: '',
+                errorOutput: ''
+            });
+
+        } catch (error) {
+            console.error("エラー:", error);
+            alert("予期しないエラーが発生しました。システム管理者に連絡してください。");
+        }
     };
 
     // モバイル用のヘッダー
@@ -303,7 +285,6 @@ export default function Home() {
                         </Button>
                     </HStack>
                 </Flex>
-
                 {/* url入力時の検索中にスピナーを表示 */}
                 {
                     loading && (
@@ -313,60 +294,52 @@ export default function Home() {
                         </VStack>
                     )
                 }
-
-                {/* url入力後のリクエストの結果を表示します */}
                 {
-                    showThumbnail && response && (
-                        videoInfo.status === true ? (
-                            <Flex justify="center" align="center" minH="60vh">
-                                <VStack spacing={4} align="stretch" maxW="300px" w="100%">
-                                    {/* 🔽 修正済みサムネイル部分 */}
-                                    <Box
-                                        width="320px"
-                                        height="180px"
-                                        borderRadius="lg"
-                                        overflow="hidden"
-                                        mx="auto"
+                    videoInfo.status && (
+                        <Flex justify="center" align="center" minH="60vh">
+                            <VStack spacing={4} align="stretch" maxW="300px" w="100%">
+                                {/* 🔽 修正済みサムネイル部分 */}
+                                <Box
+                                    width="320px"
+                                    height="180px"
+                                    borderRadius="lg"
+                                    overflow="hidden"
+                                    mx="auto"
+                                >
+                                    <Image
+                                        src={videoInfo.thumbnail}
+                                        alt="サムネイル"
+                                        objectFit="cover"
+                                        width="100%"
+                                        height="100%"
+                                    />
+                                </Box>
+                                <Text fontWeight="bold" fontSize="lg" textAlign="center">{videoInfo.title}</Text>
+                                <Box mx="auto">
+                                    <Heading size="sm" mb={2} textAlign="center">
+                                        ビデオフォーマットと解像度
+                                    </Heading>
+                                    <Select
+                                        value={selectedFormat}
+                                        onChange={(e) => setSelectedFormat(Number(e.target.value))}
                                     >
-                                        <Image
-                                            src={videoInfo.thumbnail}
-                                            alt="サムネイル"
-                                            objectFit="cover"
-                                            width="100%"
-                                            height="100%"
-                                        />
-                                    </Box>
-                                    <Text fontWeight="bold" fontSize="lg" textAlign="center">{videoInfo.title}</Text>
-                                    <Box mx="auto">
-                                        <Heading size="sm" mb={2} textAlign="center">
-                                            ビデオフォーマットと解像度
-                                        </Heading>
-                                        <Select
-                                            value={selectedFormat}
-                                            onChange={(e) => setSelectedFormat(Number(e.target.value))}
-                                        >
-                                            {formats.map((format) => (
-                                                <option key={format.id} value={format.id}>
-                                                    {format.label}
-                                                </option>
-                                            ))}
-                                        </Select>
-                                    </Box>
-                                    <ChakraProvider>
-                                        <Button onClick={handleSearch} background="white" variant="solid" outlineColor={'#cccaeb'}>
-                                            ダウンロード
-                                        </Button>
-                                    </ChakraProvider>
-                                    <Text fontSize="sm" color="gray.600" textAlign="center">
-                                        このYouTube動画をダウンロードすることで、あなたの手元に残せます。
-                                    </Text>
-                                </VStack>
-                            </Flex>
-                        ) : (
-                            <Text color="red.500" textAlign="center" mt={4}>
-                                URLに問題があります。正しい形式を確認してください。
-                            </Text>
-                        )
+                                        {formats.map((format) => (
+                                            <option key={format.id} value={format.id}>
+                                                {format.label}
+                                            </option>
+                                        ))}
+                                    </Select>
+                                </Box>
+                                <ChakraProvider>
+                                    <Button onClick={execDownload} background="white" variant="solid" outlineColor={'#cccaeb'}>
+                                        ダウンロード
+                                    </Button>
+                                </ChakraProvider>
+                                <Text fontSize="sm" color="gray.600" textAlign="center">
+                                    このYouTube動画をダウンロードすることで、あなたの手元に残せます。
+                                </Text>
+                            </VStack>
+                        </Flex>
                     )
                 }
             </Container >
