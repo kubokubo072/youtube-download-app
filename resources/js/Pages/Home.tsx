@@ -112,25 +112,7 @@ export default function Home() {
     // ダウンロード
     const execDownload = async () => {
 
-        // 初期化
-        // setShowThumbnail(false);
         setLoading(true);
-        // setVideoInfo({
-        //     status: false,
-        //     url: '',
-        //     title: '',
-        //     thumbnail: '',
-        //     errorOutput: ''
-        // });
-        // setResponse(false);
-
-        // if (inputRef.current) {
-        // const videoUrl = inputRef.current.value;
-        // if (!videoUrl) {
-        //     setLoading(false);
-        //     return;
-        // }
-
         try {
             const response = await fetch('/api/execDownload', {
                 method: 'POST',
@@ -140,18 +122,44 @@ export default function Home() {
                 },
                 body: JSON.stringify({
                     videoUrl: videoInfo.url,
+                    videoTitle: videoInfo.title,
                     selectedFormat: selectedFormat, // 「1=mp4」「2=audio」
                 }),
             });
 
             const data = await response.json();
-            alert('成功');
+            if (!data.status) {
+                alert('ファイル生成に失敗しました');
+            }
 
+            setLoading(false);
+            setVideoInfo({
+                status: false,
+                url: '',
+                title: '',
+                thumbnail: '',
+                errorOutput: ''
+            });
 
+            // ファイル取得
+            const res = await fetch(data.downloadUrl);
+            const blob = await res.blob();
+
+            // 保存
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = data.fileName;
+            a.click();
+
+            // メモリ解放
+            setTimeout(() => {
+                URL.revokeObjectURL(url);
+            }, 1000);
+
+            alert('ダウンロードが完了しました');
 
             // 初期化
-            // setShowThumbnail(false);
-            setLoading(false);
             setVideoInfo({
                 status: false,
                 url: '',

@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Symfony\Component\Process\Process;
-// use Symfony\Component\Process\Exception\ProcessFailedException;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\Process\Exception\ProcessTimedOutException;
 
@@ -29,7 +28,9 @@ class DownloadController extends Controller
             $process->run();
             if (!$process->isSuccessful()) {
                 $videoStatus = [
-                    'status' => false, 'message' => '不正なurlです', 'errorOutput' => $process->getErrorOutput()
+                    'status' => false,
+                    'message' => '不正なurlです',
+                    'errorOutput' => $process->getErrorOutput()
                 ];
             }
 
@@ -39,22 +40,30 @@ class DownloadController extends Controller
 
             if ($title) {
                 $videoStatus = [
-                    'status' => true, 'title' => $title, 'thumbnail' => $thumbnailUrl,
+                    'status' => true,
+                    'title' => $title,
+                    'thumbnail' => $thumbnailUrl,
                 ];
             } else {
                 $videoStatus = [
-                    'status' => false, 'message' => '処理がタイムアウトしました。動画に制限がある可能性があります。', 'errorOutput' => '動画に問題がある可能性が高いです'
+                    'status' => false,
+                    'message' => '処理がタイムアウトしました。動画に制限がある可能性があります。',
+                    'errorOutput' => '動画に問題がある可能性が高いです'
                 ];
             }
 
         } catch (ProcessTimedOutException $e) {
             $videoStatus = [
-                'status' => false, 'message' => '処理がタイムアウトしました。動画に制限がある可能性があります。', 'errorOutput' => $e->getMessage()
+                'status' => false,
+                'message' => '処理がタイムアウトしました。動画に制限がある可能性があります。',
+                'errorOutput' => $e->getMessage()
             ];
 
         } catch (\Throwable $e) {
             $videoStatus = [
-                'status' => false, 'message' => '不明なエラーが発生しました。', 'errorOutput' => $e->getMessage()
+                'status' => false,
+                'message' => '不明なエラーが発生しました。',
+                'errorOutput' => $e->getMessage()
             ];
         }
         return response()->json($videoStatus);
@@ -62,27 +71,46 @@ class DownloadController extends Controller
 
     public function execDownload(Request $request)
     {
-        // $videoUrl = $request->input('videoUrl');
-        $youtubeUrl = 'https://youtu.be/XBCML1MmQg8?si=eLkDlw8KNoq8wcNc';
+        $youtubeUrl = $request->input('videoUrl');
+        $selectedFormat = $request->input('selectedFormat');
+        $title = $request->input('videoTitle');
         $outputDir = public_path('videos');
 
         if (!file_exists($outputDir)) {
             mkdir($outputDir, 0777, true);
         }
-        $ytDlpPath = '/usr/local/bin/yt-dlp';
-        $cmd = $ytDlpPath . ' -S ext:mp4,res,codec:avc --merge-output-format mp4 '
-            . escapeshellarg($youtubeUrl)
-            . ' -o ' . escapeshellarg($outputDir . '/%(title).100s.%(ext)s')
-            . ' > /dev/null 2>&1 & echo $!';
 
-        $cmd = $ytDlpPath
-            . ' -S ext:mp4,res,codec:avc --merge-output-format mp4 '
-            . escapeshellarg($youtubeUrl)
-            . ' -o ' . escapeshellarg($outputDir . '/%(title).100s.%(ext)s')
-            . ' 2>&1';  // 標準エラーもキャッチ
+        $ytDlpPath = '/usr/local/bin/yt-dlp';
+        // $safeTitle = substr($title, 0, 100); // yt-dlpの%(title).100sに合わせる
+
+        // ✅ ファイル名として使えない文字を除去し、100文字制限
+        $safeTitle = preg_replace('/[^\w\- ]+/u', '', $title);
+        $safeTitle = mb_substr($safeTitle, 0, 100);
+
+        if ($selectedFormat == 1) {
+            $fileExt = 'mp4';
+            $cmd = $ytDlpPath
+                . ' -S ext:mp4,res,codec:avc --merge-output-format mp4 '
+                . escapeshellarg($youtubeUrl)
+                . ' -o ' . escapeshellarg($outputDir . '/' . $safeTitle . '.%(ext)s')
+                . ' 2>&1';
+        } else if ($selectedFormat == 2) {
+            $fileExt = 'mp3';
+            $cmd = $ytDlpPath
+                . ' --extract-audio --audio-format mp3 '
+                . escapeshellarg($youtubeUrl)
+                . ' -o ' . escapeshellarg($outputDir . '/' . $safeTitle . '.%(ext)s')
+                . ' 2>&1';
+        }
 
         exec($cmd, $output, $return_var);
-        $pid = $output[0] ?? 'unknown';
-        return [1];
+        $fileName = $safeTitle . '.' . $fileExt;
+        $downloadUrl = asset('videos/' . $fileName);
+
+        return response()->json([
+            'status' => true,
+            'downloadUrl' => $downloadUrl,
+            'fileName' => $fileName,
+        ]);
     }
 }
