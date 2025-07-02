@@ -8,6 +8,6 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::post('/isValidUrl', [DownloadController::class, 'isValidUrl']);
-Route::post('/execDownload', [DownloadController::class, 'execDownload']);
+Route::post('/isValidUrl', [DownloadController::class, 'isValidUrl'])->name('isValidUrl');
+Route::post('/execDownload', [DownloadController::class, 'execDownload'])->name('execDownload');
 // Route::post('/search', [DownloadController::class, 'getUrl']);
