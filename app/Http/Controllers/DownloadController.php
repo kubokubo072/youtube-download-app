@@ -21,7 +21,6 @@ class DownloadController extends Controller
     {
         $videoUrl = $request->input('videoUrl');
         $process = new Process(['yt-dlp', '--dump-json', $videoUrl]);
-        $process->setTimeout(8);
         $videoStatus = [];
 
         try {
@@ -47,7 +46,7 @@ class DownloadController extends Controller
             } else {
                 $videoStatus = [
                     'status' => false,
-                    'message' => '処理がタイムアウトしました。動画に制限がある可能性があります。',
+                    'message' => '①処理がタイムアウトしました。動画に制限がある可能性があります。',
                     'errorOutput' => '動画に問題がある可能性が高いです'
                 ];
             }
@@ -55,14 +54,14 @@ class DownloadController extends Controller
         } catch (ProcessTimedOutException $e) {
             $videoStatus = [
                 'status' => false,
-                'message' => '処理がタイムアウトしました。動画に制限がある可能性があります。',
+                'message' => '②処理がタイムアウトしました。動画に制限がある可能性があります。',
                 'errorOutput' => $e->getMessage()
             ];
 
         } catch (\Throwable $e) {
             $videoStatus = [
                 'status' => false,
-                'message' => '不明なエラーが発生しました。',
+                'message' => '③不明なエラーが発生しました。',
                 'errorOutput' => $e->getMessage()
             ];
         }
@@ -80,8 +79,8 @@ class DownloadController extends Controller
             mkdir($outputDir, 0777, true);
         }
 
+        // $ytDlpPath = '/root/.local/bin/yt-dlp';
         $ytDlpPath = '/usr/local/bin/yt-dlp';
-        // $safeTitle = substr($title, 0, 100); // yt-dlpの%(title).100sに合わせる
 
         // ✅ ファイル名として使えない文字を除去し、100文字制限
         $safeTitle = preg_replace('/[^\w\- ]+/u', '', $title);

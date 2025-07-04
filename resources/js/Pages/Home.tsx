@@ -1,26 +1,27 @@
 import {
     Box, Flex, Heading, VStack, HStack,
     Input, Button, Container, Select, Image, Text,
-    useDisclosure,
-    IconButton,
-    Drawer, DrawerOverlay, DrawerContent, DrawerHeader, DrawerBody,
-    Spacer,
     useMediaQuery,
     ChakraProvider
 } from '@chakra-ui/react';
 import { StarIcon, Spinner } from '@chakra-ui/icons'
-import { HamburgerIcon, CloseIcon } from '@chakra-ui/icons';
 import React, { useEffect, useRef, useState } from 'react';
 import { toast, Toaster } from 'react-hot-toast';
+import { route } from 'ziggy-js'
+import { router } from '@inertiajs/react'
+import { usePage } from '@inertiajs/react';
 
 export default function Home() {
     const [isMobile] = useMediaQuery('(max-width: 768px)');
     const inputRef = useRef<HTMLInputElement>(null); // ユーザーの入力値を取得
     const [loading, setLoading] = useState(false);
-    const { isOpen, onOpen, onClose } = useDisclosure()
     const [selectedFormat, setSelectedFormat] = useState(1); // mp4 or audioを選択
     const [showErrorMessage, setShowErrorMessage] = useState(false);
-
+    const page = usePage();
+    const user = (page.props as any)?.auth?.user;
+    const handleLogout = () => {
+        router.post(route('logout'))
+    }
     const formats = [
         { id: 1, label: "MP4(1080P, 60FPS)" },
         { id: 2, label: "音声のみ (audio)" },
@@ -36,12 +37,10 @@ export default function Home() {
     useEffect(() => {
         if (showErrorMessage) {
             toast.error("URLに問題があるか。動画に制限がある可能性があります");
-
             // 一定時間後にエラーステートを false に戻す（例：3秒後）
             const timer = setTimeout(() => {
                 setShowErrorMessage(false);
             }, 3000);
-
             // クリーンアップ関数でタイマーをクリア（安全のため）
             return () => clearTimeout(timer);
         }
@@ -65,7 +64,6 @@ export default function Home() {
                 setLoading(false);
                 return;
             }
-
             try {
                 const response = await fetch('/api/isValidUrl', {
                     method: 'POST',
@@ -104,14 +102,8 @@ export default function Home() {
         }
     };
 
-    // 入力欄 フォーカス外れた時
-    const handleBlur = () => {
-        // setInputBg('#FFFFFF');
-    };
-
     // ダウンロード
     const execDownload = async () => {
-
         setLoading(true);
         try {
             const response = await fetch('/api/execDownload', {
@@ -157,8 +149,6 @@ export default function Home() {
                 URL.revokeObjectURL(url);
             }, 1000);
 
-            alert('ダウンロードが完了しました');
-
             // 初期化
             setVideoInfo({
                 status: false,
@@ -169,7 +159,7 @@ export default function Home() {
             });
 
         } catch (error) {
-            console.error("エラー:", error);
+            // console.error("エラーが発生しました:", error);
             alert("予期しないエラーが発生しました。システム管理者に連絡してください。");
         }
     };
@@ -188,27 +178,7 @@ export default function Home() {
                 shadow="md"
             >
                 <Heading size="md">YouTubeダウンローダー</Heading>
-                <IconButton
-                    aria-label={isOpen ? 'メニューを閉じる' : 'メニューを開く'}
-                    icon={isOpen ? <CloseIcon /> : <HamburgerIcon />}
-                    onClick={isOpen ? onClose : onOpen}
-                    variant="ghost"
-                    colorScheme="yellow"
-                />
             </Flex>
-            <Drawer placement="left" onClose={onClose} isOpen={isOpen}>
-                <DrawerOverlay />
-                <DrawerContent>
-                    <DrawerHeader borderBottomWidth="1px">メニュー</DrawerHeader>
-                    <DrawerBody>
-                        <VStack align="start" spacing={4} mt={4}>
-                            <Button variant="ghost" w="100%" onClick={onClose}>ホーム</Button>
-                            <Button variant="ghost" w="100%" onClick={onClose}>使い方</Button>
-                            <Button variant="ghost" w="100%" onClick={onClose}>よくある質問</Button>
-                        </VStack>
-                    </DrawerBody>
-                </DrawerContent>
-            </Drawer>
         </>
     );
 
@@ -225,21 +195,20 @@ export default function Home() {
             shadow="md"
         >
             <Heading size="lg" color={'black'}>YouTubeダウンローダー</Heading>
-            <HStack spacing={6}>
-                <Button variant="ghost">ホーム</Button>
-                <Button variant="ghost">使い方</Button>
-                <Button variant="ghost">よくある質問</Button>
-                <Spacer />
-                <Text>ようこそ、kubokubo072さん</Text>
+            <VStack spacing={2} align="end">
+                {user && (
+                    <Text color={'black'}>ようこそ、{user.name}さん</Text>
+                )}
                 <Button
                     size="sm"
                     colorScheme="yellow"
                     variant="outline"
-                    onClick={() => alert('ログアウト')}
+                    color={'black'}
+                    onClick={handleLogout}
                 >
                     ログアウト
                 </Button>
-            </HStack>
+            </VStack>
         </Flex>
     );
 
@@ -277,7 +246,6 @@ export default function Home() {
                         <Input
                             placeholder="https://www.youtube.com/watch?v=..."
                             onChange={handleChange}
-                            onBlur={handleBlur}
                             ref={inputRef}
                             border="none"
                             size="lg"

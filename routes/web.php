@@ -6,7 +6,9 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\DownloadController;
 
-Route::get('/', [DownloadController::class, 'index']);
+Route::middleware('auth')->group(function () {
+    Route::get('/', [DownloadController::class, 'index']);
+});
 
 Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');
