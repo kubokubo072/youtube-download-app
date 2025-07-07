@@ -17,3 +17,22 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+
+# 追加
+# Docker 関連
+docker-compose.yml
+*.cnf
+aria_log*
+
+# DBやコンテナの一時ファイル
+*.pid
+*.sock
+*.log
+tmp/
+vendor/
+node_modules/
+.env
+
+# OSファイル
+.DS_Store
+Thumbs.db
