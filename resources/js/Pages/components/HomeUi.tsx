@@ -4,12 +4,43 @@ import {
   ChakraProvider,
 } from "@chakra-ui/react";
 import { Toaster } from 'react-hot-toast';
-import React from "react";
+import React, { RefObject, Dispatch, SetStateAction } from "react";
 
-export const HomeUi = ({
+type Format = {
+  id: number;
+  label: string;
+};
+
+type VideoInfo = {
+  status: boolean;
+  url: string;
+  title: string;
+  thumbnail: string;
+  errorOutput: string;
+};
+
+type User = {
+  name: string;
+};
+
+type Props = {
+  isMobile: boolean;
+  inputRef: RefObject<HTMLInputElement | null>;
+  loading: boolean;
+  videoInfo: VideoInfo;
+  formats: Format[];
+  selectedFormat: number;
+  setSelectedFormat: Dispatch<SetStateAction<number>>;
+  handleChange: () => void;
+  execDownload: () => void;
+  handleLogout: () => void;
+  user?: User;
+};
+
+export const HomeUi: React.FC<Props> = ({
   isMobile, inputRef, loading, videoInfo, formats, selectedFormat,
   setSelectedFormat, handleChange, execDownload, handleLogout, user
-}: any) => {
+}) => {
 
   const MobileHeader = () => (
     <Flex bg="teal.600" color="yellow.200" px={4} py={3} shadow="md" align="center" justify="space-between">
@@ -60,7 +91,7 @@ export const HomeUi = ({
               <Box mx="auto">
                 <Heading size="sm" mb={2} textAlign="center">ビデオフォーマットと解像度</Heading>
                 <Select value={selectedFormat} onChange={(e) => setSelectedFormat(Number(e.target.value))}>
-                  {formats.map((format: any) => (
+                  {formats.map((format) => (
                     <option key={format.id} value={format.id}>{format.label}</option>
                   ))}
                 </Select>
